@@ -117,10 +117,56 @@ s3://knowledge-base-bucket/
 
 ## Getting Started
 
-1. Set up an S3 bucket for document storage
-2. Create metadata JSON files for each document
-3. Configure Amazon Bedrock Knowledge Base with S3 as data source
-4. Implement query-time filtering in your application layer
+### Prerequisites
+
+- Node.js 18+
+- AWS CLI configured with appropriate credentials
+- AWS CDK CLI (`npm install -g aws-cdk`)
+
+### Deploy Infrastructure
+
+1. **Navigate to CDK directory:**
+
+```bash
+cd cdk
+npm install
+```
+
+2. **Bootstrap CDK (first time only):**
+
+```bash
+cdk bootstrap
+```
+
+3. **Deploy the S3 bucket:**
+
+```bash
+cdk deploy
+```
+
+This will create:
+- S3 bucket with versioning and encryption enabled
+- Bucket policy granting Amazon Bedrock access
+- Intelligent tiering for cost optimization
+- Lifecycle rules for old versions
+
+### Upload Documents
+
+After deployment, upload your documents with metadata files:
+
+```bash
+# Upload a document
+aws s3 cp my-document.pdf s3://knowledge-base-<account-id>-<region>/documents/engineering/
+
+# Upload its metadata
+aws s3 cp my-document.pdf.metadata.json s3://knowledge-base-<account-id>-<region>/documents/engineering/
+```
+
+### Next Steps
+
+1. Create metadata JSON files for each document
+2. Configure Amazon Bedrock Knowledge Base with S3 as data source
+3. Implement query-time filtering in your application layer
 
 ## References
 
