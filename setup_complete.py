@@ -93,9 +93,8 @@ def create_opensearch_index(collection_endpoint, region):
         response = client.indices.create(index=index_name, body=index_body)
         print(f"   ✅ Index '{index_name}' created successfully")
         
-        # Wait for the index to be fully propagated and visible
-        print("   ⏳ Waiting 60 seconds for index to propagate...")
-        time.sleep(60)
+        # Wait a bit for the index to be ready
+        time.sleep(5)
         return True
         
     except Exception as e:

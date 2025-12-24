@@ -1,0 +1,146 @@
+{
+  "tools": [
+    {
+      "name": "query_knowledge_base",
+      "description": "Search and retrieve relevant documents from the knowledge base using semantic search. Use this tool to find specific information, documents, or content based on a natural language query. Returns the most relevant document chunks with similarity scores.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "query": {
+            "type": "string",
+            "description": "The natural language search query to find relevant documents. Be specific and descriptive for better results."
+          },
+          "max_results": {
+            "type": "integer",
+            "description": "Maximum number of results to return. Default is 5, maximum is 25.",
+            "default": 5,
+            "minimum": 1,
+            "maximum": 25
+          },
+          "filter": {
+            "type": "object",
+            "description": "Optional metadata filter to narrow down search results. Use this to filter by document attributes like category, date, or custom metadata.",
+            "properties": {
+              "andAll": {
+                "type": "array",
+                "description": "Array of filter conditions that must all match",
+                "items": {
+                  "type": "object",
+                  "properties": {
+                    "equals": {
+                      "type": "object",
+                      "properties": {
+                        "key": { "type": "string" },
+                        "value": { "type": "string" }
+                      }
+                    },
+                    "notEquals": {
+                      "type": "object",
+                      "properties": {
+                        "key": { "type": "string" },
+                        "value": { "type": "string" }
+                      }
+                    },
+                    "greaterThan": {
+                      "type": "object",
+                      "properties": {
+                        "key": { "type": "string" },
+                        "value": { "type": "number" }
+                      }
+                    },
+                    "lessThan": {
+                      "type": "object",
+                      "properties": {
+                        "key": { "type": "string" },
+                        "value": { "type": "number" }
+                      }
+                    },
+                    "in": {
+                      "type": "object",
+                      "properties": {
+                        "key": { "type": "string" },
+                        "value": { 
+                          "type": "array",
+                          "items": { "type": "string" }
+                        }
+                      }
+                    },
+                    "stringContains": {
+                      "type": "object",
+                      "properties": {
+                        "key": { "type": "string" },
+                        "value": { "type": "string" }
+                      }
+                    }
+                  }
+                }
+              },
+              "orAll": {
+                "type": "array",
+                "description": "Array of filter conditions where at least one must match",
+                "items": {
+                  "type": "object"
+                }
+              }
+            }
+          }
+        },
+        "required": ["query"]
+      }
+    },
+    {
+      "name": "retrieve_and_generate",
+      "description": "Ask a question and get an AI-generated answer based on the knowledge base documents. This tool uses Retrieval-Augmented Generation (RAG) to provide comprehensive, cited answers. Use this when you need a synthesized response rather than raw document chunks.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "query": {
+            "type": "string",
+            "description": "The question to answer using the knowledge base. Phrase as a clear question for best results."
+          },
+          "max_tokens": {
+            "type": "integer",
+            "description": "Maximum number of tokens in the generated response. Default is 2048.",
+            "default": 2048,
+            "minimum": 100,
+            "maximum": 4096
+          },
+          "temperature": {
+            "type": "number",
+            "description": "Controls response randomness. Lower values (0.0-0.3) for factual responses, higher (0.7-1.0) for creative. Default is 0.7.",
+            "default": 0.7,
+            "minimum": 0.0,
+            "maximum": 1.0
+          }
+        },
+        "required": ["query"]
+      }
+    },
+    {
+      "name": "list_sources",
+      "description": "List all data sources connected to the knowledge base. Returns information about each data source including its ID, name, status, and last update time. Use this to understand what document collections are available.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {},
+        "required": []
+      }
+    },
+    {
+      "name": "get_knowledge_base_info",
+      "description": "Get detailed information about the knowledge base configuration including its name, description, status, storage type, and embedding model. Use this to understand the knowledge base capabilities and current state.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {},
+        "required": []
+      }
+    }
+  ],
+  "metadata": {
+    "name": "Knowledge Base Tools",
+    "description": "Tools for querying and interacting with the Amazon Bedrock Knowledge Base",
+    "version": "1.0.0",
+    "knowledge_base_id": "OYBA7PFNNQ",
+    "region": "us-west-2"
+  }
+}
+

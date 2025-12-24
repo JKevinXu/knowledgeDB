@@ -178,10 +178,7 @@ export class CdkStack extends cdk.Stack {
               ],
             },
           ],
-          Principal: [
-            knowledgeBaseRole.roleArn,
-            `arn:aws:iam::${cdk.Aws.ACCOUNT_ID}:user/xkevinj-dev`, // Current user for index creation
-          ],
+          Principal: [knowledgeBaseRole.roleArn],
         },
       ]),
     });
