@@ -931,29 +931,153 @@ new cdk.CfnOutput(this, 'GatewayInvokeRoleArn', {
 
 ## Testing
 
-### Test the Lambda Function Directly
+### ✅ Deployment Verified (December 25, 2025)
+
+The Lambda function has been successfully deployed and tested with the following results:
+
+#### Deployed Resources
+
+| Resource | Value |
+|----------|-------|
+| Lambda Function | `arn:aws:lambda:us-west-2:313117444016:function:KnowledgeBaseProxy` |
+| Lambda Role | `arn:aws:iam::313117444016:role/KnowledgeBaseProxyLambdaRole` |
+| Gateway Invoke Role | `arn:aws:iam::313117444016:role/AgentCoreGatewayInvokeRole` |
+| Cognito User Pool | `us-west-2_KCrB4IFHM` |
+| Cognito Client ID | `6p0atln929gufjgnfibnttg2st` |
+| Token URL | `https://kb-gateway-313117444016.auth.us-west-2.amazoncognito.com/oauth2/token` |
+
+### Test Results
+
+#### Test 1: Query Knowledge Base - China Market
+
+```bash
+aws lambda invoke \
+  --function-name KnowledgeBaseProxy \
+  --payload '{"tool_name": "query_knowledge_base", "tool_input": {"query": "What are the seller guidelines for China market?", "max_results": 3}}' \
+  --cli-binary-format raw-in-base64-out \
+  --region us-west-2 \
+  response_cn.json
+```
+
+**Result**: ✅ Success (StatusCode: 200)
+
+```json
+{
+  "success": true,
+  "data": {
+    "results": [
+      {
+        "content": "# Amazon Seller Guide - China Marketplace ## Marketplace: CN (Amazon.cn) **Region**: Asia Pacific **Currency**: CNY (Chinese Yuan) **Language**: Simplified Chinese...",
+        "score": 0.5715,
+        "location": "s3://knowledge-base-313117444016-us-west-2/documents/seller-guide-cn.md",
+        "metadata": {
+          "marketplace": "CN",
+          "language": "chinese",
+          "region": "asia_pacific",
+          "document_type": "seller_guide"
+        }
+      }
+    ],
+    "count": 3,
+    "query": "What are the seller guidelines for China market?",
+    "knowledge_base_id": "OYBA7PFNNQ"
+  }
+}
+```
+
+#### Test 2: Query Knowledge Base - US Market
+
+```bash
+aws lambda invoke \
+  --function-name KnowledgeBaseProxy \
+  --payload '{"tool_name": "query_knowledge_base", "tool_input": {"query": "What are the seller guidelines for US market?", "max_results": 3}}' \
+  --cli-binary-format raw-in-base64-out \
+  --region us-west-2 \
+  response_us.json
+```
+
+**Result**: ✅ Success (StatusCode: 200)
+
+```json
+{
+  "success": true,
+  "data": {
+    "results": [
+      {
+        "content": "# Amazon Seller Guide - United States Marketplace ## Marketplace: US **Region**: North America **Currency**: USD **Language**: English...",
+        "score": 0.5222,
+        "location": "s3://knowledge-base-313117444016-us-west-2/documents/seller-guide-us.md",
+        "metadata": {
+          "marketplace": "US",
+          "language": "english",
+          "region": "north_america",
+          "document_type": "seller_guide"
+        }
+      }
+    ],
+    "count": 3,
+    "query": "What are the seller guidelines for US market?",
+    "knowledge_base_id": "OYBA7PFNNQ"
+  }
+}
+```
+
+#### Test 3: Retrieve and Generate - Compare CN vs US
+
+```bash
+aws lambda invoke \
+  --function-name KnowledgeBaseProxy \
+  --payload '{"tool_name": "retrieve_and_generate", "tool_input": {"query": "What are the key differences between selling on Amazon CN vs US marketplace?", "max_tokens": 1024}}' \
+  --cli-binary-format raw-in-base64-out \
+  --region us-west-2 \
+  response_rag.json
+```
+
+**Result**: ✅ Success (StatusCode: 200)
+
+**AI-Generated Answer**:
+> Some key differences between selling on the Amazon CN (China) vs US marketplace include:
+> 
+> 1. **Registration requirements**: For the CN marketplace, you need a Chinese business license, Chinese bank account, and legal representative ID card. For the US, you only need a US bank account/credit card, tax ID number, and business address.
+> 
+> 2. **Seller types**: The CN marketplace only has a Professional Seller plan (¥300/month), while the US has both Individual (per-item fee) and Professional plans.
+> 
+> 3. **Product compliance**: The CN marketplace has additional requirements like CCC certification for many products, China Food Safety Law for imported food, cosmetics/medical device registration with NMPA, and import licenses/documentation. The US has requirements like FDA, FCC, CPSC standards.
+> 
+> 4. **Fulfillment**: Both have Fulfillment by Amazon options, but the CN FBA has fewer warehouses concentrated in major cities, while the US FBA has 175+ warehouses across the country.
+> 
+> 5. **Marketing tools**: The US has more established marketing tools like Sponsored Products ads, Amazon Vine for reviews, and Lightning Deals. The CN marketplace is still developing these.
+> 
+> 6. **Cultural considerations**: For the CN market, sellers need to be aware of things like lucky/unlucky numbers, color preferences, gift-giving customs, and major shopping festivals like 11.11 and 6.18.
+
+**Citations**: 5 source documents from both `seller-guide-cn.md` and `seller-guide-us.md`
+
+### Test Commands
 
 ```bash
 # Test query_knowledge_base
 aws lambda invoke \
   --function-name KnowledgeBaseProxy \
-  --payload '{"tool_name": "query_knowledge_base", "tool_input": {"query": "What is the return policy?", "max_results": 3}}' \
+  --payload '{"tool_name": "query_knowledge_base", "tool_input": {"query": "Your query here", "max_results": 5}}' \
   --cli-binary-format raw-in-base64-out \
-  response.json
+  --region us-west-2 \
+  response.json && cat response.json | jq .
 
-cat response.json | jq .
-```
-
-### Test retrieve_and_generate
-
-```bash
+# Test retrieve_and_generate
 aws lambda invoke \
   --function-name KnowledgeBaseProxy \
-  --payload '{"tool_name": "retrieve_and_generate", "tool_input": {"query": "How do I return a product?"}}' \
+  --payload '{"tool_name": "retrieve_and_generate", "tool_input": {"query": "Your question here"}}' \
   --cli-binary-format raw-in-base64-out \
-  response.json
+  --region us-west-2 \
+  response.json && cat response.json | jq -r '.body | fromjson | .data'
 
-cat response.json | jq .
+# Test list_sources
+aws lambda invoke \
+  --function-name KnowledgeBaseProxy \
+  --payload '{"tool_name": "list_sources", "tool_input": {}}' \
+  --cli-binary-format raw-in-base64-out \
+  --region us-west-2 \
+  response.json && cat response.json | jq .
 ```
 
 ### Test via MCP Client
@@ -1051,7 +1175,10 @@ aws logs tail /aws/lambda/KnowledgeBaseProxy --follow
 
 ---
 
-**Created**: December 24, 2025  
+**Created**: December 25, 2025  
+**Last Tested**: December 25, 2025 ✅  
 **Knowledge Base ID**: OYBA7PFNNQ  
-**Region**: us-west-2
+**Region**: us-west-2  
+**Lambda Function**: KnowledgeBaseProxy  
+**Status**: Deployed and Operational
 
