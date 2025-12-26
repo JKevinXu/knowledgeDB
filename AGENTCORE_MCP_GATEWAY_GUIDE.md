@@ -1176,9 +1176,60 @@ aws logs tail /aws/lambda/KnowledgeBaseProxy --follow
 ---
 
 **Created**: December 25, 2025  
-**Last Tested**: December 25, 2025 ✅  
+**Last Tested**: December 26, 2025 ✅  
 **Knowledge Base ID**: OYBA7PFNNQ  
 **Region**: us-west-2  
 **Lambda Function**: KnowledgeBaseProxy  
 **Status**: Deployed and Operational
+
+---
+
+## ✅ AgentCore Gateway Deployment (December 26, 2025)
+
+### Gateway Details
+
+| Resource | Value |
+|----------|-------|
+| Gateway Name | `KnowledgeBaseGateway` |
+| Gateway ID | `knowledgebasegateway-z01bbyrzgr` |
+| Status | **READY** |
+| MCP Endpoint | `https://knowledgebasegateway-z01bbyrzgr.gateway.bedrock-agentcore.us-west-2.amazonaws.com/mcp` |
+| Auth Type | AWS_IAM |
+| Protocol | MCP v2025-03-26 |
+
+### Gateway Target
+
+| Resource | Value |
+|----------|-------|
+| Target Name | `KnowledgeBaseProxyTarget` |
+| Target ID | `ALALK0U5YE` |
+| Status | **READY** |
+| Lambda ARN | `arn:aws:lambda:us-west-2:313117444016:function:KnowledgeBaseProxy` |
+
+### Available Tools via MCP
+
+1. **query_knowledge_base** - Semantic search for documents
+2. **retrieve_and_generate** - RAG-based Q&A with citations
+3. **list_sources** - List data sources
+
+### MCP Client Configuration
+
+```json
+{
+  "mcpServers": {
+    "knowledge-base": {
+      "url": "https://knowledgebasegateway-z01bbyrzgr.gateway.bedrock-agentcore.us-west-2.amazonaws.com/mcp",
+      "transport": "sse",
+      "auth": {
+        "type": "aws_iam",
+        "region": "us-west-2"
+      }
+    }
+  }
+}
+```
+
+### AWS Console
+
+[View Gateway](https://console.aws.amazon.com/bedrock/home?region=us-west-2#/agentcore/gateways/knowledgebasegateway-z01bbyrzgr)
 

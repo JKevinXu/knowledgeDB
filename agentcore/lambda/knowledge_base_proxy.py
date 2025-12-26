@@ -56,13 +56,40 @@ def handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
     
     try:
         # Handle different event formats from AgentCore Gateway
-        tool_name = event.get('tool_name') or event.get('name', '')
-        tool_input = event.get('tool_input') or event.get('input', {})
+        # Format 1: tool_name/tool_input (our custom format)
+        # Format 2: name/input (basic MCP)
+        # Format 3: name/arguments (AgentCore MCP Gateway)
+        # Format 4: action/parameters (alternative)
+        # Format 5: Just arguments (AgentCore Gateway Lambda target - tool name stripped)
+        tool_name = event.get('tool_name') or event.get('name') or event.get('toolName', '')
+        tool_input = event.get('tool_input') or event.get('input') or event.get('arguments') or event.get('toolInput', {})
         
         # Also handle direct invocation format
         if not tool_name and 'action' in event:
             tool_name = event['action']
             tool_input = event.get('parameters', {})
+        
+        # Handle namespaced tool names from AgentCore Gateway (e.g., "TargetName___tool_name")
+        if tool_name and '___' in tool_name:
+            tool_name = tool_name.split('___')[-1]
+        
+        # If no tool name but we have parameters, infer the tool from the event structure
+        # This handles AgentCore Gateway Lambda targets which send just the arguments
+        if not tool_name:
+            # Check if event itself contains tool arguments (gateway sends args directly)
+            if 'query' in event:
+                # Could be either query_knowledge_base or retrieve_and_generate
+                # Use max_tokens presence to distinguish
+                if 'max_tokens' in event or 'temperature' in event:
+                    tool_name = 'retrieve_and_generate'
+                else:
+                    tool_name = 'query_knowledge_base'
+                tool_input = event
+            elif not any(k in event for k in ['tool_name', 'name', 'action', 'toolName']):
+                # No recognized parameters - likely list_sources or get_knowledge_base_info
+                # Default to list_sources for empty calls
+                tool_name = 'list_sources'
+                tool_input = event
         
         logger.info(f"Processing tool: {tool_name} with input: {json.dumps(tool_input)}")
         
