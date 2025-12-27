@@ -1176,7 +1176,7 @@ aws logs tail /aws/lambda/KnowledgeBaseProxy --follow
 ---
 
 **Created**: December 25, 2025  
-**Last Tested**: December 26, 2025 ✅  
+**Last Tested**: December 27, 2025 ✅  
 **Knowledge Base ID**: OYBA7PFNNQ  
 **Region**: us-west-2  
 **Lambda Function**: KnowledgeBaseProxy  
@@ -1184,9 +1184,9 @@ aws logs tail /aws/lambda/KnowledgeBaseProxy --follow
 
 ---
 
-## ✅ AgentCore Gateway Deployment (December 26, 2025)
+## ✅ AgentCore Gateway Deployments
 
-### Gateway Details
+### Gateway 1: AWS IAM Authentication
 
 | Resource | Value |
 |----------|-------|
@@ -1194,30 +1194,14 @@ aws logs tail /aws/lambda/KnowledgeBaseProxy --follow
 | Gateway ID | `knowledgebasegateway-z01bbyrzgr` |
 | Status | **READY** |
 | MCP Endpoint | `https://knowledgebasegateway-z01bbyrzgr.gateway.bedrock-agentcore.us-west-2.amazonaws.com/mcp` |
-| Auth Type | AWS_IAM |
-| Protocol | MCP v2025-03-26 |
+| Auth Type | AWS_IAM (SigV4 signing) |
+| Best For | AWS-based clients, CLI tools, backend services |
 
-### Gateway Target
-
-| Resource | Value |
-|----------|-------|
-| Target Name | `KnowledgeBaseProxyTarget` |
-| Target ID | `ALALK0U5YE` |
-| Status | **READY** |
-| Lambda ARN | `arn:aws:lambda:us-west-2:313117444016:function:KnowledgeBaseProxy` |
-
-### Available Tools via MCP
-
-1. **query_knowledge_base** - Semantic search for documents
-2. **retrieve_and_generate** - RAG-based Q&A with citations
-3. **list_sources** - List data sources
-
-### MCP Client Configuration
-
+**MCP Client Configuration (IAM):**
 ```json
 {
   "mcpServers": {
-    "knowledge-base": {
+    "knowledge-base-iam": {
       "url": "https://knowledgebasegateway-z01bbyrzgr.gateway.bedrock-agentcore.us-west-2.amazonaws.com/mcp",
       "transport": "sse",
       "auth": {
@@ -1229,7 +1213,67 @@ aws logs tail /aws/lambda/KnowledgeBaseProxy --follow
 }
 ```
 
-### AWS Console
+### Gateway 2: OAuth Authentication ✅ RECOMMENDED
 
-[View Gateway](https://console.aws.amazon.com/bedrock/home?region=us-west-2#/agentcore/gateways/knowledgebasegateway-z01bbyrzgr)
+| Resource | Value |
+|----------|-------|
+| Gateway Name | `KnowledgeBaseGatewayOAuth2` |
+| Gateway ID | `knowledgebasegatewayoauth2-pf7rmcexrm` |
+| Status | **READY** |
+| MCP Endpoint | `https://knowledgebasegatewayoauth2-pf7rmcexrm.gateway.bedrock-agentcore.us-west-2.amazonaws.com/mcp` |
+| Auth Type | OAuth 2.0 (Client Credentials) |
+| Best For | External clients, Claude Desktop, Cursor, third-party integrations |
+
+**OAuth Credentials:**
+| Setting | Value |
+|---------|-------|
+| Token URL | `https://kb-gateway-313117444016.auth.us-west-2.amazoncognito.com/oauth2/token` |
+| Client ID | `6p0atln929gufjgnfibnttg2st` |
+| Client Secret | `6naog4eufg4n0bk0cd26lqe6ndfgd20bofrbq4748k54sbl56h9` |
+| Scope | `agentcore/invoke` |
+
+**MCP Client Configuration (OAuth):**
+```json
+{
+  "mcpServers": {
+    "knowledge-base": {
+      "url": "https://knowledgebasegatewayoauth2-pf7rmcexrm.gateway.bedrock-agentcore.us-west-2.amazonaws.com/mcp",
+      "transport": "sse",
+      "auth": {
+        "type": "oauth2",
+        "tokenUrl": "https://kb-gateway-313117444016.auth.us-west-2.amazoncognito.com/oauth2/token",
+        "clientId": "6p0atln929gufjgnfibnttg2st",
+        "clientSecret": "6naog4eufg4n0bk0cd26lqe6ndfgd20bofrbq4748k54sbl56h9",
+        "scopes": ["agentcore/invoke"]
+      }
+    }
+  }
+}
+```
+
+**Get Access Token (curl):**
+```bash
+curl -X POST "https://kb-gateway-313117444016.auth.us-west-2.amazoncognito.com/oauth2/token" \
+  -H "Content-Type: application/x-www-form-urlencoded" \
+  -u "6p0atln929gufjgnfibnttg2st:6naog4eufg4n0bk0cd26lqe6ndfgd20bofrbq4748k54sbl56h9" \
+  -d "grant_type=client_credentials&scope=agentcore/invoke"
+```
+
+### Common: Gateway Target
+
+| Resource | Value |
+|----------|-------|
+| Target Name | `KnowledgeBaseProxyTarget` |
+| Lambda ARN | `arn:aws:lambda:us-west-2:313117444016:function:KnowledgeBaseProxy` |
+
+### Available MCP Tools
+
+1. **query_knowledge_base** - Semantic search for documents
+2. **retrieve_and_generate** - RAG-based Q&A with citations
+3. **list_sources** - List data sources
+
+### AWS Console Links
+
+- [IAM Gateway](https://console.aws.amazon.com/bedrock/home?region=us-west-2#/agentcore/gateways/knowledgebasegateway-z01bbyrzgr)
+- [OAuth Gateway](https://console.aws.amazon.com/bedrock/home?region=us-west-2#/agentcore/gateways/knowledgebasegatewayoauth2-pf7rmcexrm)
 
