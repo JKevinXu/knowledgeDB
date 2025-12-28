@@ -5,6 +5,9 @@ Deploy basic policies to AgentCore Gateway.
 Usage:
     python deploy_policies.py         # LOG mode (test)
     python deploy_policies.py --enforce  # ENFORCE mode (production)
+
+NOTE: Policy APIs are not yet available in SDK (Dec 2025).
+      This script is ready for when the feature is released.
 """
 
 import boto3

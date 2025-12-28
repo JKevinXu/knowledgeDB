@@ -25,7 +25,32 @@ permit(
 );
 
 // ----------------------------------------------------------------------------
-// POLICY 3: Allow OAuth Users to Query
+// POLICY 3: Block suspended users
+// ----------------------------------------------------------------------------
+// Users with "suspended" tag are denied access.
+
+forbid(
+    principal is AgentCore::OAuthUser,
+    action,
+    resource
+)
+when { principal.hasTag("suspended") };
+
+// ----------------------------------------------------------------------------
+// POLICY 4: Limit max_tokens to 2048
+// ----------------------------------------------------------------------------
+// Prevent excessive token usage (cost control).
+
+forbid(
+    principal is AgentCore::OAuthUser,
+    action == AgentCore::Action::"KnowledgeBaseProxyTarget___retrieve_and_generate",
+    resource
+)
+when { context.toolInput.max_tokens > 2048 }
+advice { "max_tokens cannot exceed 2048" };
+
+// ----------------------------------------------------------------------------
+// POLICY 5: Allow OAuth Users to Query
 // ----------------------------------------------------------------------------
 // External users authenticated via OAuth can use all tools.
 

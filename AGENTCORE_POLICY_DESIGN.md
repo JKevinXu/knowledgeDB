@@ -1,5 +1,8 @@
 # AgentCore Policy - Design Document
 
+> ⚠️ **Status**: Policy APIs are announced but **not yet available** in SDK/CLI (as of Dec 2025). 
+> This document prepares for when the feature becomes generally available.
+
 ## Overview
 
 AgentCore Policy enforces security controls over AI agent tool calls. Policies are written in **Cedar** and evaluated at the Gateway before each tool invocation.
