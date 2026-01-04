@@ -3,3 +3,10 @@
 
 boto3>=1.34.0
 
+# OpenTelemetry / ADOT for AgentCore Evaluations tracing
+# See: https://aws-otel.github.io/docs/getting-started/lambda
+aws-opentelemetry-distro>=0.6.0
+opentelemetry-api>=1.20.0
+opentelemetry-sdk>=1.20.0
+opentelemetry-instrumentation-botocore>=0.44b0
+

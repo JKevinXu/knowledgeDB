@@ -2,10 +2,20 @@
 Knowledge Base Proxy Lambda Function
 Handles MCP tool calls from AgentCore Gateway and proxies to Bedrock Knowledge Base
 
-This Lambda function provides three tools:
+This Lambda function provides four tools:
 1. query_knowledge_base - Semantic search for relevant documents
 2. retrieve_and_generate - RAG-based Q&A with citations
 3. list_sources - List connected data sources
+4. get_knowledge_base_info - Get KB configuration details
+
+Evaluation Support:
+This function emits structured EVAL_DATA logs to CloudWatch for AgentCore Evaluations.
+Log data includes queries, responses, documents, and user context to support:
+- Built-in evaluators: Correctness, Faithfulness, Helpfulness, Harmfulness, etc.
+- Custom evaluators: Access Compliance, Metadata Filter Accuracy
+
+References:
+- AgentCore Evaluations: https://aws.amazon.com/blogs/aws/amazon-bedrock-agentcore-adds-quality-evaluations-and-policy-controls-for-deploying-trusted-ai-agents/
 """
 
 import json
@@ -43,6 +53,11 @@ def handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
         "tool_input": {
             "query": "What is the shipping policy?",
             "max_results": 5
+        },
+        "user_context": {  // Optional - for access compliance evaluation
+            "role": "seller",
+            "department": "finance",
+            "accessLevel": "internal"
         }
     }
     
@@ -63,6 +78,12 @@ def handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
         # Format 5: Just arguments (AgentCore Gateway Lambda target - tool name stripped)
         tool_name = event.get('tool_name') or event.get('name') or event.get('toolName', '')
         tool_input = event.get('tool_input') or event.get('input') or event.get('arguments') or event.get('toolInput', {})
+        
+        # Extract optional user context for access compliance evaluation
+        user_context = event.get('user_context') or event.get('userContext')
+        
+        # Extract session ID if provided
+        session_id = event.get('session_id') or event.get('sessionId')
         
         # Also handle direct invocation format
         if not tool_name and 'action' in event:
@@ -102,7 +123,8 @@ def handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
         }
         
         if tool_name in handlers:
-            return handlers[tool_name](tool_input)
+            # Pass user_context to tool handlers for evaluation logging
+            return handlers[tool_name](tool_input, user_context=user_context)
         else:
             return error_response(
                 f"Unknown tool: '{tool_name}'. Available tools: {list(handlers.keys())}"
@@ -113,7 +135,7 @@ def handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
         return error_response(str(e), status_code=500)
 
 
-def query_knowledge_base(params: Dict[str, Any]) -> Dict[str, Any]:
+def query_knowledge_base(params: Dict[str, Any], user_context: Optional[Dict] = None) -> Dict[str, Any]:
     """
     Retrieve relevant documents from the knowledge base using semantic search.
     
@@ -126,6 +148,11 @@ def query_knowledge_base(params: Dict[str, Any]) -> Dict[str, Any]:
     - results: List of matching documents with content, score, and metadata
     - count: Number of results returned
     - query: The original search query
+    
+    Evaluation Data (EVAL_DATA log):
+    - request.query, request.filters for Tool Parameter Accuracy
+    - response.documents for Faithfulness
+    - user_context for Access Compliance
     """
     query = params.get('query', '').strip()
     max_results = min(params.get('max_results', DEFAULT_MAX_RESULTS), 25)
@@ -168,6 +195,25 @@ def query_knowledge_base(params: Dict[str, Any]) -> Dict[str, Any]:
         
         logger.info(f"Retrieved {len(results)} results")
         
+        # Structured log for AgentCore Evaluations (CloudWatch log source)
+        # Contains data required by evaluators: query, response, documents
+        eval_log = {
+            "event_type": "knowledge_base_retrieve",
+            "tool_name": "query_knowledge_base",
+            "request": {
+                "query": query,
+                "filters": metadata_filter,
+                "max_results": max_results
+            },
+            "response": {
+                "document_count": len(results),
+                "documents": [{"content": r["content"][:1000], "score": r["score"], 
+                               "source": r["location"]} for r in results[:5]]
+            },
+            "user_context": user_context
+        }
+        logger.info(f"EVAL_DATA: {json.dumps(eval_log)}")
+        
         return success_response({
             'results': results,
             'count': len(results),
@@ -184,7 +230,7 @@ def query_knowledge_base(params: Dict[str, Any]) -> Dict[str, Any]:
         return error_response(f"Failed to retrieve from knowledge base: {str(e)}")
 
 
-def retrieve_and_generate(params: Dict[str, Any]) -> Dict[str, Any]:
+def retrieve_and_generate(params: Dict[str, Any], user_context: Optional[Dict] = None) -> Dict[str, Any]:
     """
     Query the knowledge base and generate an AI response using RAG.
     
@@ -201,6 +247,12 @@ def retrieve_and_generate(params: Dict[str, Any]) -> Dict[str, Any]:
     - answer: The AI-generated response
     - citations: List of source documents used
     - query: The original question
+    
+    Evaluation Data (EVAL_DATA log):
+    - request.query for Helpfulness
+    - response.answer for Correctness, Harmfulness
+    - response.citations for Faithfulness
+    - user_context for Access Compliance
     """
     query = params.get('query', '').strip()
     model_arn = params.get('model_arn', MODEL_ARN)
@@ -248,12 +300,38 @@ def retrieve_and_generate(params: Dict[str, Any]) -> Dict[str, Any]:
         
         logger.info(f"Generated response with {len(citations)} citations")
         
+        # Extract model name for logging
+        model_name = model_arn.split('/')[-1] if '/' in model_arn else model_arn
+        
+        # Structured log for AgentCore Evaluations (CloudWatch log source)
+        # Contains all data required by built-in evaluators:
+        # - Correctness: response content
+        # - Faithfulness: response + citations/context
+        # - Helpfulness: query + response
+        # - Harmfulness: response content
+        eval_log = {
+            "event_type": "knowledge_base_rag",
+            "tool_name": "retrieve_and_generate",
+            "request": {
+                "query": query,
+                "model": model_name
+            },
+            "response": {
+                "answer": output_text,
+                "citation_count": len(citations),
+                "citations": [{"content": c["content"][:500], "source": c["location"]} 
+                              for c in citations[:5]]
+            },
+            "user_context": user_context
+        }
+        logger.info(f"EVAL_DATA: {json.dumps(eval_log)}")
+        
         return success_response({
             'answer': output_text,
             'citations': citations,
             'citation_count': len(citations),
             'query': query,
-            'model': model_arn.split('/')[-1] if '/' in model_arn else model_arn
+            'model': model_name
         })
         
     except bedrock_agent_runtime.exceptions.ValidationException as e:
@@ -265,7 +343,7 @@ def retrieve_and_generate(params: Dict[str, Any]) -> Dict[str, Any]:
         return error_response(f"Failed to generate response: {str(e)}")
 
 
-def list_sources(params: Dict[str, Any]) -> Dict[str, Any]:
+def list_sources(params: Dict[str, Any], user_context: Optional[Dict] = None) -> Dict[str, Any]:
     """
     List all data sources connected to the knowledge base.
     
@@ -304,7 +382,7 @@ def list_sources(params: Dict[str, Any]) -> Dict[str, Any]:
         return error_response(f"Failed to list sources: {str(e)}")
 
 
-def get_knowledge_base_info(params: Dict[str, Any]) -> Dict[str, Any]:
+def get_knowledge_base_info(params: Dict[str, Any], user_context: Optional[Dict] = None) -> Dict[str, Any]:
     """
     Get information about the knowledge base configuration.
     

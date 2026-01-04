@@ -22,6 +22,11 @@ LAMBDA_ROLE_NAME="KnowledgeBaseProxyLambdaRole"
 GATEWAY_INVOKE_ROLE_NAME="AgentCoreGatewayInvokeRole"
 COGNITO_POOL_NAME="AgentCoreGatewayPool"
 
+# AWS Distro for OpenTelemetry (ADOT) Lambda Layer for tracing
+# Required for AgentCore Evaluations - captures trace data for LLM-as-judge evaluators
+# See: https://aws-otel.github.io/docs/getting-started/lambda
+ADOT_LAYER_ARN="arn:aws:lambda:${REGION}:901920570463:layer:aws-otel-python-amd64-ver-1-24-0:1"
+
 echo "╔══════════════════════════════════════════════════════════════════════╗"
 echo "║           AGENTCORE MCP GATEWAY - DEPLOYMENT SCRIPT                   ║"
 echo "╚══════════════════════════════════════════════════════════════════════╝"
@@ -140,15 +145,17 @@ if aws lambda get-function --function-name ${LAMBDA_FUNCTION_NAME} --region ${RE
         --function-name ${LAMBDA_FUNCTION_NAME} \
         --region ${REGION}
     
-    # Update configuration
+    # Update configuration with ADOT layer for tracing
     aws lambda update-function-configuration \
         --function-name ${LAMBDA_FUNCTION_NAME} \
-        --environment "Variables={KNOWLEDGE_BASE_ID=${KNOWLEDGE_BASE_ID},MODEL_ARN=arn:aws:bedrock:${REGION}::foundation-model/anthropic.claude-3-sonnet-20240229-v1:0}" \
+        --layers ${ADOT_LAYER_ARN} \
+        --environment "Variables={KNOWLEDGE_BASE_ID=${KNOWLEDGE_BASE_ID},MODEL_ARN=arn:aws:bedrock:${REGION}::foundation-model/anthropic.claude-3-sonnet-20240229-v1:0,OTEL_SERVICE_NAME=knowledgedb-mcp,ENABLE_TRACING=true}" \
         --region ${REGION} > /dev/null
 else
     # Wait a bit more for role propagation if creating new function
     sleep 5
     
+    # Create function with ADOT layer for AgentCore Evaluations tracing
     aws lambda create-function \
         --function-name ${LAMBDA_FUNCTION_NAME} \
         --runtime python3.12 \
@@ -157,7 +164,8 @@ else
         --zip-file fileb://lambda/function.zip \
         --timeout 30 \
         --memory-size 256 \
-        --environment "Variables={KNOWLEDGE_BASE_ID=${KNOWLEDGE_BASE_ID},MODEL_ARN=arn:aws:bedrock:${REGION}::foundation-model/anthropic.claude-3-sonnet-20240229-v1:0}" \
+        --layers ${ADOT_LAYER_ARN} \
+        --environment "Variables={KNOWLEDGE_BASE_ID=${KNOWLEDGE_BASE_ID},MODEL_ARN=arn:aws:bedrock:${REGION}::foundation-model/anthropic.claude-3-sonnet-20240229-v1:0,OTEL_SERVICE_NAME=knowledgedb-mcp,ENABLE_TRACING=true}" \
         --region ${REGION} > /dev/null
 fi
 
