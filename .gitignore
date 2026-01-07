@@ -7,20 +7,6 @@ cdk/*.js
 cdk/*.d.ts
 !cdk/jest.config.js
 
-# Python
-__pycache__/
-*.py[cod]
-*.egg-info/
-.venv/
-
-# Build artifacts
-agentcore/lambda/function.zip
-*.zip
-
-# Test outputs
-test_results/
-response*.json
-
 # IDE
 .idea/
 .vscode/
@@ -38,6 +24,4 @@ npm-debug.log*
 # Test coverage
 coverage/
 
-# Environment
-.env
-.env.local
+.venv/
