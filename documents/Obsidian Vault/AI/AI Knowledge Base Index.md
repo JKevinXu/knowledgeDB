@@ -4,6 +4,7 @@ Last updated: 2026-05-05
 
 ## Agentic Engineering
 
+- [[Agentic Services Protocol ASP Server Landscape]] — current landscape note on ASP as an early agent-to-service transaction protocol: Prosus spec repo, reference sample servers, lack of clear commercial ASP server products, and wrapper patterns for Codex/Kiro-style software-agent services.
 - [[Model Context Protocol (MCP)]] — concept wiki for MCP as agent-native infrastructure: tools/resources/prompts, stdio vs Streamable HTTP, MCP Apps, session handling, remote auth/CORS/public metadata, deployment lessons, client support reality, and reusable verification patterns.
 - [[OpenClaw - Personal AI Assistant Gateway]] — source summary of OpenClaw as a local-first, multi-channel personal AI assistant: Gateway control plane, channel adapters, plugin extension model, hooks, security defaults, and comparison points with Hermes-style gateway mechanisms.
 - [[Hermes WeChat Message Hook Mechanism]] — implementation-grounded summary of Hermes' WeChat/iLink model: QR-derived bot-token authentication, long-poll transport, gateway normalization, dispatch hooks for routing/rewrite/drop behavior, lifecycle hooks for observation, context-token reply continuity, and platform-agnostic agent processing.
